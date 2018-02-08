@@ -24,7 +24,7 @@ Contributions are welcome as long as the guidelines outlined below are followed.
 
 * All code must satisfy all linter rules.
 
-* Disabling the linter for blocks of code with an eslint-disable directive is forbidden. 
+* Disabling the linter for blocks of code with an eslint-disable directive is forbidden.
 
 * Any pull request that breaks the build will be immediately rejected and closed.  Failure to have 100% test coverage and linter compliance will break the build.
 
