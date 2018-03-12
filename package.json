@@ -1,7 +1,7 @@
 {
   "name": "spleen-mongodb",
   "longName": "spleen-mongodb",
-  "description": "Convert spleen filters into MongoDB query DSL.",
+  "description": "Convert spleen filters into MongoDB Query Documents.",
   "version": "1.0.0",
   "dependencies": {
     "elv": "^2.0.0",
