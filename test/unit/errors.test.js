@@ -49,17 +49,17 @@ describe('errors', function() {
   });
 
 
-  describe('NonallowedFieldError', function() {
+  describe('UnallowedFieldError', function() {
     it('sets message to default suffixed with field', function() {
       const field = '/foo/bar';
-      const result = new errors.NonallowedFieldError(field);
-      const expected = errors.NonallowedFieldError.defaultMessage + field;
+      const result = new errors.UnallowedFieldError(field);
+      const expected = errors.UnallowedFieldError.defaultMessage + field;
       assert.strictEqual(result.message, expected);
     });
 
     it('sets data to denied field', function() {
       const field = '/foo/bar';
-      const result = new errors.NonallowedFieldError(field);
+      const result = new errors.UnallowedFieldError(field);
       assert.strictEqual(result.data, field);
     });
   });
@@ -78,6 +78,23 @@ describe('errors', function() {
       const fields = ['foo', 'bar'];
       const result = new errors.RequiredFieldError(fields);
       assert.strictEqual(result.data, fields);
+    });
+  });
+
+
+  describe('UnsupportedError', function () {
+    it('sets message to given value', function () {
+      const expected = 'This is a test';
+      const result = new errors.UnsupportedError(expected);
+      assert.strictEqual(result.message, expected);
+    });
+
+    it('sets message to default', function () {
+      const result = new errors.UnsupportedError();
+      assert.strictEqual(
+        result.message,
+        errors.UnsupportedError.defaultMessage
+      );
     });
   });
 
