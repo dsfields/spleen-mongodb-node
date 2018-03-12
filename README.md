@@ -5,6 +5,7 @@ The [`spleen`](https://www.npmjs.com/package/spleen) module provides high-level 
 __Contents__
 * [Usage](#usage)
 * [API](#api)
+* [Security](#security)
 
 ## Usage
 
@@ -17,76 +18,106 @@ $ npm install spleen-mongodb -S
 Then use it in your code:
 
 ```js
-const splongodb = require('spleen-mongodb');
 const spleen = require('spleen');
+const splongo = require('spleen-mongodb');
 
 const filter = spleen.parse('/foo/bar eq 42 and /baz in [1,2,3] or /qux gt 0');
-const result = splongodb.convert(filter);
+const result = splongo.convert(filter);
 
-console.log(result);
+console.log(result.value);
 // {
-//   $or: [
+//   "$or": [
 //     {
-//       "foo.bar": 42,
-//       "baz": { "$in": [1, 2, 3,] }
+//       "$and": [
+//         { "foo.bar": 42 },
+//         { "baz": { "$in": [1, 2, 3,] } }
+//       ]
 //     },
-//     {
-//       "qux": { "$gt": 0 }
-//     }
+//     { "qux": { "$gt": 0 } }
 //   ]
 // }
 ```
 
 ## API
 
-The `spleen-mongodb` module provides the following interface:
+The `spleen-mongodb` module provides the following interface.
 
-* __Properties__
+### `splongo.convert(filter [, strategy])`
 
-  + `errors`: an object that contains references to the various possible errors thrown by `spleen-mongodb`.  This object has the following keys:
+Converts an instance of [`spleen`](https://www.npmjs.com/package/spleen)'s [`Filter`](https://www.npmjs.com/package/spleen#class-filter) class into an MongoDB Query Filter Document object.
 
-    - `ConvertError`: a general error thrown when `spleen-mongodb` is unable to convert a given `Filter` instance into a Query Filter Document object.  This should generally never happen, and is here as a safeguard in the event a `Filter` instance is corrupted.
+__Parameters__
 
-    - `DeniedFieldError`: thrown when a field is encountered that has been explicitly black-listed by the `deny` option.
+* `filter`: _(required)_ the instance of `Filter` to convert.
 
-    - `InvalidTargetError`: thrown if a target is encountered with an invalid format.  For example, if a segment of the path contains disallowed characters.
+* `strategy`: _(optional)_ an instance of [`Strategy`](#splongostrategy).
 
-    - `NonallowedFieldError`: thrown when a field is encountered that not been white-listed by the `allow` option.
+__Returns__
 
-    - `RequiredFieldError`: thrown when a field that has been required by the `require` option is not present in the given `Filter`.
+An object with the following keys:
 
-  + `Strategy`: a reference to the [`Strategy`](#class-strategy) class.
+* `fields`: an array of [RFC 6901 JSON pointer](https://tools.ietf.org/html/rfc6901) values, representing the fields referenced by the converted `Fitler`.
 
-* __Methods__
+* `value`: the MongoDB Query Filter Document.
 
-  + `convert(filter [, strategy])`: converts an instance of `spleen`'s `Filter`' class into an MongoDB Query Filter Document object.
+----------
 
-    _Parameters_
+### `splongo.errors.ConvertError`
 
-    - `filter`: _(required)_ the instance of `Filter` to convert.
+A general error thrown when `spleen-mongodb` is unable to convert a given [`Filter`](https://www.npmjs.com/package/spleen#class-filter) instance into a Query Filter Document object.  This should generally never happen, and is here as a safeguard in the event a `Filter` instance is corrupted.
 
-    - `strategy`: _(optional)_ an instance of `Strategy`.
+----------
 
-    This method returns an object with the following key:
+### `splongo.errors.DeniedFieldError`
 
-    - `fields`: an array containing all of the fields (in [RFC 6901 JSON pointer](https://tools.ietf.org/html/rfc6901) format) included in the filter.
+An error thrown when a field is encountered that has been explicitly black-listed by the `deny` option.
 
-    - `value`: an object containing the MongoDB Filter Query Document.
+----------
 
-### Class: `Strategy`
+### `splongo.errors.InvalidTargetError`
 
-Compiles a `spleen` to MongoDB Query Filter Document conversion strategy, which is easily read by the `convert()` method.
+An error thrown if a target is encountered with an invalid format.  For example, if a segment of the path contains reserved characters.
 
-* `new Strategy(settings)`
+----------
 
-  Creates a new instance of `Strategy`.
+### `splongo.errors.UnallowedFieldError`
 
-  _Parameters_
+An error thrown when a field is encountered that has not been white-listed by the `allow` option.
 
-  + `settings`: _(required)_ an object that controls various aspects of the conversion process.  This object can have the keys:
+----------
 
-    - `allow`: _(optional)_ an array of RFC 6901 JSON pointer strings that are allowed to be in a `Filter`'s list of targets.  Any targets in a `Filter` instance not found in the `allow` or `require` lists will result in an error being thrown.  This list functions as a white list, and can only be present if `deny` is absent.  An empty array is the logical equivalent of the `allow` key being absent.
+### `splongo.errors.RequiredFieldError`
 
-    - `deny`: _(optional)_ an array of RFC 6901 JSON pointer strings that are not allowed to be in a `Filter`'s list of targets.  Any targets in a `Filter` instance found in this list will result in an error being thrown.  This list functions as a black list, and can only be present if `allow` is absent.
+An error thrown when a [`Filter`](https://www.npmjs.com/package/spleen#class-filter) instance is passed to [`convert()`](#splongoconvertfilter-strategy) missing a required field.
 
-    - `require`: _(optional)_ an array of RFC 6901 JSON pointer strings that are required to be in a `Filter`'s list of targets (`Filter.prototype.targets`).  If a required target is missing, an error is thrown.
+----------
+
+### `splongo.Strategy`
+
+A class that represents a conversion strategy.  Instances are meant to be cached in memory to prevent having to recompute this information with every call to [`convert()`](#splongoconvertfilter-strategy).
+
+#### `Strategy.prototype.constructor([options])`
+
+Create a new instance of `Strategy`.
+
+* `options`: _(optional)_ an object that provides conversion options. This object can have the keys:
+
+  + `allow`: _(optional)_ an array of [RFC 6901 JSON pointer](https://tools.ietf.org/html/rfc6901) strings that are allowed to be in a `Filter`'s list of targets.  Any targets in a [`Filter`](https://www.npmjs.com/package/spleen#class-filter) instance not found in the `allow` or `require` lists will result in an error being thrown.  This list functions as a white list, and can only be present if `deny` is absent.  An empty array is the logical equivalent of the `allow` key being absent.
+
+  + `deny`: _(optional)_ an array of RFC 6901 JSON pointer strings that are not allowed to be in a `Filter`'s list of targets.  Any targets in a `Filter` instance found in this list will result in an error being thrown.  This list functions as a black list, and can only be present if `allow` is absent.
+
+  + `require`: _(optional)_  object that specifies required field target behavior. This object can have the following keys:
+
+    - `fields`: _(optional)_ an array of RFC 6901 JSON pointer strings that are required to be in a `Filter`'s list of targets (`Filter.prototype.targets`).  If a required target is missing, an error is thrown.  If this key is omitted or empty, there are assumed to be no required fields.
+
+    - `which`: _(optional)_ a string specifying which fields are required to be in a given `Filter`. This can be either `any` or `all`. If omitted, this value defaults to `any`.
+
+## Security
+
+The combination of `spleen` and `spleen-mongodb` add a number of layers of protection to prevent [NoSQL-injection attacks](https://www.owasp.org/index.php/Testing_for_NoSQL_injection) vulnerabilities.  Either `spleen` will refuse to parse a given filter, or `spleen-mongodb` will throw an error if reserved MongoDB tokens are encountered.
+
+That said, there are a couple of other things to consider:
+
+1. It is advised that implementers make use of the [`Strategy`](#splongostrategy) class' `allow`/`deny` and `require` functionality.  The idea is to prevent a DoS attack vector by ensuring expensive queries against un-indexed fields cannot be executed.
+
+2. The `spleen` and `spleen-mongodb` libraries do not, and cannot, ensure queries are not executed against data to which a user lacks sufficient permission.  When required, implementers should append static authorization checks to all queries taken as input.
